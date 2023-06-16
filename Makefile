@@ -70,33 +70,6 @@ data/fastq/quantif_GRCm39.%.rds:
 	  --gtf='data/ref/GRCm39_vM27/gencode.vM27.annotation.gtf' \
 	  data/fastq/*.GRCm39.star/Aligned.sortedByCoord.out.bam
 
-data/fastq/quantif_spneum.%.rds:
-	./local/bin/bam_quantify \
-	  --out '$@' \
-	  --mode '$*' \
-	  --gtf='data/ref/atcc6303_s_pneumoniae/Streptococcus_pneumoniae_ATCC_6303.gff' \
-	  data/fastq/*.spneum.star/Aligned.sortedByCoord.out.bam
-
-data/fastq/quantif_lm.%.rds:
-	./local/bin/bam_quantify \
-	  --out '$@' \
-	  --mode '$*' \
-	  --gtf='data/ref/l_murinis/GCF_003288115.1_ASM328811v1_genomic.gtf' \
-	  data/fastq/*.lm.star/Aligned.sortedByCoord.out.bam
-
-data/fastq/quantif_influenza.%.rds:
-	./local/bin/bam_quantify \
-	  --out '$@' \
-	  --mode '$*' \
-	  --gtf='data/ref/influenza_A_virus/influenza_A_virus_segments.gff3' \
-	  data/fastq/*.influenza.star/Aligned.sortedByCoord.out.bam
-
-
-
-
-
-
-
 
 
 
