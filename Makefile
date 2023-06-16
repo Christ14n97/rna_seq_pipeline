@@ -5,8 +5,8 @@ STAR_FLAGS += --clip3pAdapterSeq AAAAAAAAAAAAAAAAAAA,CTGTCTCTTATACACATCT
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Define paths to the softwares
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-STAR := ml GCC/8.3.0 STAR/2.7.4a && STAR
-SAMTOOLS := ml GCC/8.3.0 SAMtools/1.10 && samtools
+STAR := STAR
+SAMTOOLS := samtools
 
 
 
@@ -14,8 +14,8 @@ SAMTOOLS := ml GCC/8.3.0 SAMtools/1.10 && samtools
 # STAR mapping
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Paired-end version
-.PRECIOUS:%.GRCm39.star/Aligned.sortedByCoord.out.bam
-%.GRCm39.star/Aligned.sortedByCoord.out.bam:%.fastq.gz
+.PRECIOUS:%.DdMm.star/Aligned.sortedByCoord.out.bam
+%.DdMm.star/Aligned.sortedByCoord.out.bam:%.fastq.gz
 	mkdir -p '$(@D)' && \
         $(STAR) $(STAR_FLAGS) \
           --runThreadN 8 \
