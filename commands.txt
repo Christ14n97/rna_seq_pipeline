@@ -26,3 +26,8 @@ STAR --runMode alignReads --genomeDir dicty_myco_merged_star_index/ --outSAMtype
 
 samtools view -h mapped/Aligned.sortedByCoord.out.bam | head
 samtools idxstat file.bam
+
+
+
+###### Makefie commands ######
+make DAEZ01_S1_L003_R1_001.DdMm.star/Aligned.sortedByCoord.out.bam
