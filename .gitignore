@@ -1,0 +1,9 @@
+
+_STARtmp/
+*.Rproj
+*.fastq.gz
+*.bam
+*.zip
+*fna.gz
+*fna.gff.bak
+*_star_index/

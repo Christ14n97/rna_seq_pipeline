@@ -1,0 +1,276 @@
+---
+title: "R Notebook"
+output: html_notebook
+params:
+  sample_subset: !r c("Lung9bis","Lung10","Lung11","Lung12","Lung16bis","Lung17","Lung18")
+  outdir: "out/spn_analysis"
+  #sample_subset: !r c("Lung10","Lung11","Lung12","Lung17","Lung18")
+  #outdir: "out/spn_analysis_wo_bis"
+---
+
+
+```{r,message=FALSE}
+library(SummarizedExperiment) #BiocManager::install("SummarizedExperiment")
+#library(edgeR) #BiocManager::install("edgeR")
+library("dplyr") #install.packages("dplyr")
+#library("tidyverse") #install.packages("tidyverse")
+library("ggplot2") #install.packages("ggplot2")
+library("ggrepel") #install.packages("ggrepel")
+library("limma") #install.packages("limma")
+library("DESeq2") #install.packages("DESeq2")
+library("pheatmap") #install.packages("pheatmap")
+library("RColorBrewer")#install.packages("RColorBrewer")
+library("gplots")#install.packages("gplots")
+#library("genefilter")#install.packages("genefilter")
+#library("clusterProfiler")#BiocManager::install("clusterProfiler")
+library("gplots") #install.packages("gplots")
+library("fgsea")
+library(igraph)
+library("pathview") #BiocManager::install("pathview")
+```
+
+
+# Load and prepare data
+```{r}
+X <- readRDS("out/data/quantif_spneum_koala2.rds") # Load Strepto data
+X <- X[,X$lib_original %in% params$sample_subset]
+assays(X) <- assays(X)[c("antisense",setdiff(assayNames(X),"antisense"))]
+write.csv(assay(X,"antisense"),file=file.path(params$outdir,"quantif_spn_antisense.csv"))
+```
+
+
+#Deseq Spngenesdiffexp
+```{r}
+dds <- DESeqDataSet(X,design= ~ virus)
+dds <- DESeq(dds)
+resultsNames(dds)
+```
+
+# Deseq Volcanoplot 
+```{r}
+SIvsSpnHigh <- list(
+  SIvsSpnHigh = results(dds) 
+)
+SIvsSpnHigh <- lapply(SIvsSpnHigh,function(x){x <- as.data.frame(x);x$gene<-rownames(x);x})
+SIvsSpnHigh <- SplitDataFrameList(SIvsSpnHigh) |> stack() |> as.data.frame()
+SIvsSpnHigh <- SIvsSpnHigh %>%
+  mutate(gene_type = case_when(
+    log2FoldChange >= 1 & padj <= 0.05 ~ "up",
+    log2FoldChange<= -1 & padj <= 0.05 ~ "down",
+    TRUE ~ "ns")
+  )
+metadata(dds)$all_deseq_results <- SIvsSpnHigh
+saveRDS(dds,file.path(params$outdir,"DESeq.rds"))
+write.csv(SIvsSpnHigh,file.path(params$outdir,"DESeqSpndiffexp.csv"))
+write.csv(na.omit(SIvsSpnHigh),file.path(params$outdir,"DESeqSpndiffexp2.csv"))
+
+
+top_genes <- bind_rows(
+  top_up <- SIvsSpnHigh %>% 
+      filter(gene_type == "up") %>% 
+      arrange(padj, desc(abs(log2FoldChange))) %>% 
+      head(10),
+  top_down <-SIvsSpnHigh %>% 
+      filter(gene_type == "down") %>% 
+      arrange(padj, desc(abs(log2FoldChange))) %>% 
+      head(10)
+)
+gene_spermidine <- SIvsSpnHigh %>%
+  filter(SIvsSpnHigh$gene %in% c("argG_1", "argG_2","argG_3" , "argH", "speA" , "speE","AguA","IBPGGIGD_00830"))
+gene_arg <- SIvsSpnHigh %>%
+  filter(SIvsSpnHigh$gene %in% c("argG_1","argG_2","argG_3","argH","artP_1"))
+
+#volcano
+ggplot(SIvsSpnHigh, aes(x = log2FoldChange, y = -log10(padj)))+
+   geom_point(aes(color = gene_type, show.legend = FALSE)) +
+  geom_vline(xintercept = c(-1, 1),linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05),linetype = "dashed")+
+  #xlim(-10,10) +
+  #ylim(0,150) +
+ # geom_label_repel(aes(log2FoldChange, -log(pvalue), label = gene, color = gene_type), data = top_genes, check_overlap = FALSE, show.legend = FALSE, size=6 ) +
+    theme_bw(base_size = 16)
+ggsave(file.path(params$outdir,"volcano.png"),width=11,height=9)
+
+
+#gene_arg
+ggplot(SIvsSpnHigh, aes(x = log2FoldChange, y = -log10(padj)))+
+   geom_point(aes(color = gene_type, show.legend = FALSE)) +
+  geom_vline(xintercept = c(-1, 1),linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05),linetype = "dashed")+
+  geom_point(data = gene_arg,fill="#3E95A7", color="#3E95A7", pch=21, size = 4)+
+  #xlim(-10,10) +
+  #ylim(0,150) +
+ # geom_label_repel(aes(log2FoldChange, -log(pvalue), label = gene, color = gene_type), data = top_genes, check_overlap = FALSE, show.legend = FALSE, size=6 ) +
+  geom_text_repel(aes(label = gene, color = gene_type),data = gene_arg,  size = 10,fontface = 'bold',max.overlaps=Inf,show.legend = FALSE, force = 2, nudge_y = 1,color= "#3E95A7", hjust=1, vjust=1) +
+   scale_color_manual(values=c("up"="grey50","ns"="lightgrey","down"="black"))+
+    theme_bw(base_size = 16)
+  
+ggsave(file.path(params$outdir,"volcano_arg.png"),width=11,height=9)
+
+#gene_arg+ply
+gene_ply <- SIvsSpnHigh %>%
+filter(SIvsSpnHigh$gene %in% c("ply"))
+
+ggplot(SIvsSpnHigh, aes(x = log2FoldChange, y = -log10(padj)))+
+   geom_point(aes(color = gene_type, show.legend = FALSE)) +
+  geom_vline(xintercept = c(-1, 1),linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05),linetype = "dashed")+
+  #xlim(-10,10) +
+  #ylim(0,150) +
+ geom_label_repel(aes(label = gene, color = gene_type),data = gene_ply, size=6,show.legend = FALSE, force = 2, nudge_y = 1)+
+  geom_label_repel(aes(label = gene, color = gene_type),data = gene_arg, size=6,show.legend = FALSE, force = 2, nudge_y = 1) +
+   theme_bw(base_size = 16)
+ggsave(file.path(params$outdir,"volcano_arg_ply.png"),width=11,height=9)
+
+#hihlight gene spermidine
+ggplot(SIvsSpnHigh, aes(x = log2FoldChange, y = -log10(padj)))+
+   geom_point(aes(color = gene_type, show.legend = FALSE)) +
+  geom_vline(xintercept = c(-1, 1),linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05),linetype = "dashed")+
+ # xlim(-10,10) +
+ # ylim(0,150) +
+  geom_label_repel(aes(label = gene, color = gene_type), data = gene_spermidine, show.legend = FALSE, size=6,force = 2, nudge_y = 1 ) +
+    theme_bw(base_size = 16)
+  
+ggsave(file.path(params$outdir,"volcano_spermidine.png"),width=11,height=9)
+
+```
+#DESeq Heatmap sample distance
+```{r}
+rld <- rlog(dds)
+sampleDists <- dist(t(assay(rld)))
+print(sampleDists)
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(rld$lib)
+colnames(sampleDistMatrix) <- paste(rld$lib)
+colours = colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+heatmap.2(sampleDistMatrix, trace="none", col=colours, margins = c(7,7))
+dev.copy2pdf(file=file.path(params$outdir,"dist_matrix.pdf"),width=7,height=7)
+```
+#DESeq PCA
+```{r}
+pcadata <- plotPCA( rld, intgroup = c("Spn", "virus"),returnData=TRUE)
+percentVar <- round(100 * attr(pcadata, "percentVar"))
+ggplot(pcadata, aes(PC1, PC2, color= group)) +
+  geom_point( size=6) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  xlim(-15,25) +
+  ylim(-15,20) +
+  theme_bw(base_size = 16)+
+  scale_color_manual(limits = c("High:No",  "Low:Yes"), labels =c("SpnHigh",  "SI"),values = c("#107F80" ,"#AA66FF")) +
+  ggforce::geom_mark_ellipse(aes(con=group))
+ 
+    
+ggsave(file.path(params$outdir,"pca.png"),width=9,height=9)
+```
+#Deseq Heatmap samples clustering
+```{r}
+topVarGenes <- head(order(rowVars(assay(rld)), decreasing=TRUE ),100)
+heatmap.2(
+  assay(rld)[topVarGenes,], scale="row",
+  trace="none", dendrogram="column",margins = c(7,7),
+  col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255)
+)
+dev.copy2pdf(file=file.path(params$outdir,"heatmap_top_var.pdf"),width=5,height=15)
+```
+
+#DESeq pheatmap 
+```{r}
+topVarGenes <- head(order(-rowVars(assay(rld))),25)
+mat <- assay(rld)[ topVarGenes, ]
+mat <- mat - rowMeans(mat)
+df <- as.data.frame(colData(rld)[,c("Spn","virus")])
+pheatmap(mat, annotation_col=df)
+dev.copy2pdf(file=file.path(params$outdir,"pheatmap_top_var.pdf"),width=5,height=7)
+```
+
+
+
+#GSEA 
+```{r}
+L <- stack(setNames(rowRanges(X)$kegg_all,rownames(X)),"GeneID","ontology_id") |>
+  as.data.frame()
+P <- as_data_frame(metadata(X)$kegg_brite,"v")
+LP <- merge(L,P) # Table to list all genes invovled into a pathway
+
+pathways <- split(as.character(LP$GeneID),paste(LP$ontology_id,LP$label))
+
+stats <- na.omit(results(dds))
+stats <- setNames(stats$log2FoldChange,rownames(stats))
+stats <- stats[names(stats) %in% unlist(pathways)]
+gseaDat <- fgsea(pathways, stats)
+
+gsea_df <- as.data.frame(gseaDat) 
+gsea_df$leadingEdge <- unstrsplit(gsea_df$leadingEdge,"/")
+write.csv(gsea_df , file.path(params$outdir,"gsea_df.csv"))
+gsea_df <- gsea_df |>
+    filter(padj <= 0.05)
+
+ggplot(gsea_df, aes(x=NES, y= reorder(pathway, NES), size = size)) +
+  geom_point(stat="identity", aes(color=padj)) +
+    ylab("Pathways")+
+  scale_color_gradient(low="red", high="grey", trans = "log10") +
+  theme_bw(base_size = 16) 
+ggsave(file.path(params$outdir,"kegg.pdf"),width=15,height=8)
+
+
+
+```
+#hypergeometric test
+```{r}
+Up_SIvsSpnHigh_fora <- SIvsSpnHigh |> 
+  filter(gene_type == "up") |>
+    with(gene) |>
+  fora(pathways=pathways,universe=intersect(SIvsSpnHigh$gene,unlist(pathways))) |>
+  data.frame()
+Up_SIvsSpnHigh_fora |> 
+  as.data.frame() |> 
+  within(overlapGenes <- unstrsplit(overlapGenes,"/")) |>
+  write.csv(file.path(params$outdir,"hyper_up_df.csv"))
+ 
+
+ggplot(Up_SIvsSpnHigh_fora |> filter(padj <= 1e-1), aes(x=-log10(pval), y= reorder(pathway,-log10(pval) ), size = size)) +
+  geom_point(stat="identity", aes(color=padj)) +
+  ylab("Pathways")+
+  scale_color_gradient(low="red", high="grey", trans = "log10") +
+  theme_bw(base_size = 16)
+
+ggsave(file.path(params$outdir,"fora_Up_SIvsSpnHigh.pdf"),width=15,height=7)
+
+```
+
+
+#visualize pathway map
+```{r}
+gene.data <- SIvsSpnHigh |>
+  mutate(koala_id = rowData(X)$koala_id[match(gene,rownames(X))]) |>
+  filter(gene_type %in% c("up","down"))
+gene.data <- setNames(gene.data$log2FoldChange , gene.data$koala_id)
+
+wd <- setwd(file.path(params$outdir,"pathview"))
+
+
+arg <- pathview(gene.data = gene.data , pathway.id = "00220", species = "ko", out.suffix = "arg", kegg.native = T,
+ same.layer = F)
+
+ribosome <- pathview(gene.data = gene.data , pathway.id = "03010", species = "ko", out.suffix = "ribo", kegg.native = T,
+ same.layer = F)
+arg_pro <- pathview(gene.data = gene.data , pathway.id = "00330", species = "ko", out.suffix = "arg_pro", kegg.native = T,
+ same.layer = F)
+
+QS <- pathview(gene.data = gene.data , pathway.id = "02024", species = "ko", out.suffix = "QS", kegg.native = T,
+ same.layer = F)
+
+starch_sucrose <- pathview(gene.data = gene.data , pathway.id = "00500", species = "ko", out.suffix = "starch_sucrose", kegg.native = T,
+ same.layer = F)
+
+setwd(wd)
+
+```
+
+
+
+
+
