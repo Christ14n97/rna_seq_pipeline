@@ -7,9 +7,11 @@ cat Dictyostelium_discoideum_Ax4/dicty_primary_genomic.fasta Mycobacterium_marin
 sed -E 's/(\tCDS\t)/\texon\t/' test/reference_genomes/Mycobacterium_marinum/GCF_000018345.1_ASM1834v1_genomic.gff \
     > test/reference_genomes/Mycobacterium_marinum/V2_GCF_000018345.1_ASM1834v1_genomic.gff
     
- cat test/reference_genomes/Dictyostelium_discoideum_Ax4/gff3/*.gff test/reference_genomes/Mycobacterium_marinum/V2_GCF_000018345.1_ASM1834v1_genomic.gff > test/reference_genomes/dicty_myco_merged_annotation.gff
+cat test/reference_genomes/Dictyostelium_discoideum_Ax4/gff3/*.gff test/reference_genomes/Mycobacterium_marinum/V2_GCF_000018345.1_ASM1834v1_genomic.gff > test/reference_genomes/dicty_myco_merged_annotation.gff
 
-
+# WORKDIR
+cd test/reference_genomes
+ 
 # index generation command for merged genomes
 STAR --runMode genomeGenerate --genomeSAindexNbases 10 --genomeDir dicty_myco_merged_star_index/ \
     --genomeFastaFiles dicty_myco_merged_genomes.fna \
@@ -21,3 +23,6 @@ STAR --runMode alignReads --genomeDir dicty_myco_merged_star_index/ --outSAMtype
     --readFilesIn ../fastq/DAEZ01_S1_L003_R1_001.fastq.gz --runThreadN 10 \
     --outReadsUnmapped Fastx --readFilesCommand gunzip -c --quantMode GeneCounts \
     --outFileNamePrefix ../mapped/
+
+samtools view -h mapped/Aligned.sortedByCoord.out.bam | head
+samtools idxstat file.bam
