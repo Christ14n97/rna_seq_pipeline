@@ -28,6 +28,23 @@ RUN apt-get update && aptitude -y install rna-star
     
 RUN aptitude -y install nano
 
+RUN R -q -e " \
+	install.packages('optparse')"
+
+RUN R -q -e "\
+	install.packages('BiocManager'); \
+	BiocManager::install(version='3.17'); \
+	BiocManager::install('BiocParallel')"
+
+RUN aptitude -y install libcurl4-openssl-dev
+
+RUN R -q -e "\
+	BiocManager::install(c('GenomicAlignments'))"
+
+
+RUN R -q -e "\
+	BiocManager::install(c('GenomicFeatures', 'rtracklayer'))"
+
 # removing cache files
 RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/*;
 # removing temporary folders

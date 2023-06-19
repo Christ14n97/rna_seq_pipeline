@@ -18,6 +18,9 @@ STAR --runMode genomeGenerate --genomeSAindexNbases 10 --genomeDir dicty_myco_me
     --sjdbGTFtagExonParentTranscript Parent --sjdb \
     --sjdbGTFfile dicty_myco_merged_annotation.gff --runThreadN 10
 
+### I had to create the fasta.fai with samtools
+samtools faidx dicty_myco_merged_genomes.fna
+
 # mapping command
 STAR --runMode alignReads --genomeDir dicty_myco_merged_star_index/ --outSAMtype BAM SortedByCoordinate \
     --readFilesIn ../fastq/DAEZ01_S1_L003_R1_001.fastq.gz --runThreadN 10 \
@@ -30,4 +33,18 @@ samtools idxstat file.bam
 
 
 ###### Makefie commands ######
-make DAEZ01_S1_L003_R1_001.DdMm.star/Aligned.sortedByCoord.out.bam
+make DAEZ01_S1_L003_R1_001.bam.idxstat BAM_FILE=../mapped/DAEZ01_S1_L003_R1_001.DdMm.star/Aligned.sortedByCoord.out.bam
+
+STEP 1: change directory to folder containing fastq-gz files
+
+cd path/to/fastq.gz_files
+
+STEP 2: Create array
+files=($(basename --suffix=.fastq.gz -- *.fastq.gz))
+
+STEP 3: Loop over the array and do make
+
+for n in ${files[@]}; do make BASE_NAME=$n \
+	GENOME_DIR=../reference_genomes/dicty_myco_merged_star_index \
+	QUANT_MODE='gene' \
+	BAM_FILE=../mapped/${n}.DdMm.star/Aligned.sortedByCoord.out.bam ; done
