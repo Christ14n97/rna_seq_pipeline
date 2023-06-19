@@ -10,3 +10,4 @@ _STARtmp/
 *.gff.bak
 *_star_index/
 *.gff.gz
+.Rproj.user

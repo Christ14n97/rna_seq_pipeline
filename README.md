@@ -3,7 +3,7 @@
 This repository contains essential files to cover RNA-seq pipeline. In particular from FASTQ files mapping with STAR, to count matrix with R. This pipeline depends on `STAR`,
 `samtools`, `R-4.3`, `BiocManager=3.17`, `GenomicAlignments` & `GenomicFeatures`.
 
-The Makefile under the directory `test/fastq/` contains all the instructions of the pipeline. However, files in `bin/` directory are needed to compute the count matrix.
+The Makefile under the directory contains all the instructions of the pipeline. However, files in `bin/` directory are needed to compute the count matrix.
 
 Pipeline:
 - First it performs mapping of the FASTQ using `STAR` to a reference genome.
@@ -13,9 +13,10 @@ Pipeline:
 ## How to use it
 Assuming that you have your reference genome ready to be used for mapping purposes, these are the steps to follow:
 
-`STEP 1`: navigate to folder containing FASTQ.gz files
+`STEP 1`: place Make file in the folder containing FASTQ.gz files and navigate to it
 
 ```bash
+cp Makefile path/to/fastq.gz_files/.
 cd path/to/fastq.gz_files
 ```
 
