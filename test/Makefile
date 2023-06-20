@@ -35,7 +35,7 @@ $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam:$(BASE_NAME).fastq.gz
           --readFilesCommand gunzip -c \
           --quantMode GeneCounts \
           --genomeDir $(GENOME_DIR) \
-          --outFileNamePrefix '../mapped/$(@D)/' \
+          --outFileNamePrefix '$(@D)' \
           --readFilesIn $^
 
 

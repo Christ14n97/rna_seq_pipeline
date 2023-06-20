@@ -10,28 +10,34 @@ Pipeline:
 - Secondly, computes statistics with `samtools`.
 - Ultimately, generates the count matrix using R scripts in `bin/` folder.
 
-## How to use it
-Assuming that you have your reference genome ready to be used for mapping purposes, these are the steps to follow:
-
-`STEP 1`: place Make file in the folder containing FASTQ.gz files and navigate to it
+## Build docker image
 
 ```bash
-cp Makefile path/to/fastq.gz_files/.
-cd path/to/fastq.gz_files
+docker build --progress=plain --cpuset-cpus 8 --rm -f "container/Dockerfile" -t "unigebsp/rnaseq_pipe" "container"
 ```
 
-`STEP 2`: create an array
+## Docker container directory structure
+
+Inside the container the structure is as follows:
+
+```
+|-----home/user/pipeline
+                |
+                |---fastq/ - folder containing .fastq.gz files.
+                |---ref/ - folder containing reference genome fasta files.
+                |---Makefile - file containing pipeline.
+```
+
+## How to use the container
+
+Run the docker container:
 
 ```bash
-files=($(basename --suffix=.fastq.gz -- *.fastq.gz))
+docker run -it --rm -v $PWD/test/reference_genomes/:/home/user/pipeline/ref/ \
+       -v $PWD/test/fastq/:/home/user/pipeline/fastq/ unigebsp/rnaseq_pipe
 ```
 
-`STEP 3`: loop over the array and do `make`
+In this case we mount:
 
-```bash
-for n in ${files[@]}; do make BASE_NAME=$n \
-  GENOME_DIR=../reference_genomes/dicty_myco_merged_star_index \
-  QUANT_MODE='gene' \
-  BAM_FILE=../mapped/${n}.DdMm.star/Aligned.sortedByCoord.out.bam ;
-  done
-```
+1. `$PWD/test/reference_genomes/`, our local folder containing a reference genome of our interest to docker container folder `/home/user/pipeline/ref/` to work with it.
+2. `$PWD/test/fastq/`, our local folder containing our fastq.gz files to docker container folder `home/user/pipeline/fastq/` to work with it.
