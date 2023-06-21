@@ -23,6 +23,7 @@ Inside the container the structure is as follows:
 ```
 |-----home/user/pipeline
                 |
+                |---bin/ - folder containing R scripts need for pipeline.
                 |---fastq/ - folder containing .fastq.gz files.
                 |---ref/ - folder containing reference genome fasta files.
                 |---Makefile - file containing pipeline.
@@ -41,3 +42,16 @@ In this case we mount:
 
 1. `$PWD/test/reference_genomes/`, our local folder containing a reference genome of our interest to docker container folder `/home/user/pipeline/ref/` to work with it.
 2. `$PWD/test/fastq/`, our local folder containing our fastq.gz files to docker container folder `home/user/pipeline/fastq/` to work with it.
+
+## Run pipeline
+
+```bash
+files=($(ls fastq/ | grep -E "*.fastq.gz$" | sed 's/\.fastq.gz$//'))
+```
+
+```bash 
+for n in ${files[@]}; do make BASE_NAME=$n \
+       GENOME_DIR=reference_genomes/dicty_myco_merged_star_index \
+       QUANT_MODE='gene' \
+       BAM_FILE=fastq/${n}.DdMm.star/Aligned.sortedByCoord.out.bam;done
+```

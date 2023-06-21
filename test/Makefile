@@ -1,4 +1,5 @@
 
+
 all: $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam $(BASE_NAME).bam.bai \
 	$(BASE_NAME).bam.flagstat $(BASE_NAME).bam.idxstat quantif_$(BASE_NAME).$(QUANT_MODE).rds
 
@@ -7,7 +8,7 @@ all: $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam $(BASE_NAME).bam.bai \
 STAR_FLAGS += --clip3pAdapterSeq AAAAAAAAAAAAAAAAAAA,CTGTCTCTTATACACATCT
 
 BASE_NAME := $(BASE_NAME)
-
+vpath %.fastq.gz fastq/
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Define paths to the softwares
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -19,12 +20,13 @@ SAMTOOLS := samtools
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # STAR mapping
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
 GENOME_DIR := $(GENOME_DIR)
 
 # Paired-end version
 .PRECIOUS:%.DdMm.star/Aligned.sortedByCoord.out.bam
 $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam:$(BASE_NAME).fastq.gz
-	#mkdir -p 'test/$(@D)' && \
+	mkdir -p 'fastq/$(@D)' && \
         $(STAR) $(STAR_FLAGS) \
           --runThreadN 8 \
           --outSAMtype BAM SortedByCoordinate \
@@ -35,7 +37,7 @@ $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam:$(BASE_NAME).fastq.gz
           --readFilesCommand gunzip -c \
           --quantMode GeneCounts \
           --genomeDir $(GENOME_DIR) \
-          --outFileNamePrefix '$(@D)' \
+          --outFileNamePrefix 'fastq/$(@D)/' \
           --readFilesIn $^
 
 
@@ -51,7 +53,7 @@ DIR := $(dir $(BAM_FILE))
 OUTPATH := $(DIR)
 
 $(BASE_NAME).bam.bai:$(BAM_FILE)
-	$(SAMTOOLS) index $<
+	$(SAMTOOLS) index $< 
 
 $(BASE_NAME).bam.flagstat:$(BAM_FILE)
 	$(SAMTOOLS) flagstat "$(abspath $<)" > "$(abspath $(OUTPATH))/$@"
@@ -79,10 +81,10 @@ $(BASE_NAME).bam.idxstat:$(BAM_FILE)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 QUANT_MODE := $(QUANT_MODE)
 quantif_$(BASE_NAME).$(QUANT_MODE).rds:$(BAM_FILE)
-	../.././bin/bam_quantify \
-	  --out '$(OUTPATH)/$@' \
+	  ../pipeline/bin/./bam_quantify \
+	  --out '$(abspath $(OUTPATH))/$@' \
 	  --mode $(QUANT_MODE) \
-	  --gtf='../reference_genomes/dicty_myco_merged_annotation.gff' \
+	  --gtf='reference_genomes/dicty_myco_merged_annotation.gff' \
 	  $(BAM_FILE) 
 	# *.GRCm39.star/Aligned.sortedByCoord.out.bam
 

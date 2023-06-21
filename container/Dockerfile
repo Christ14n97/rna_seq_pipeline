@@ -26,7 +26,7 @@ ENV PATH="$PATH:~HOME/Downloads/samtools-1.17"
 
 RUN apt-get update && aptitude -y install rna-star
     
-RUN aptitude -y install nano
+RUN aptitude -y install nano libcurl4-openssl-dev
 
 COPY install.R /tmp
 RUN R -q -f "/tmp/install.R"
@@ -41,10 +41,12 @@ RUN rm -rf /tmp/downloaded_packages && \
 WORKDIR $HOME
 
 RUN mkdir pipeline/
-RUN mkdir pipeline/ref/
+#RUN mkdir pipeline/ref/
 RUN mkdir pipeline/fastq/
+
 COPY dicty_myco_merged_genomes.fna dicty_myco_merged_genomes.fna.fai pipeline/ref/.
 COPY Makefile pipeline/.
+COPY bin/ pipeline/bin/.
 
 USER user
 
