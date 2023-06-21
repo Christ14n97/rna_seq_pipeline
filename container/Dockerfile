@@ -41,16 +41,20 @@ RUN rm -rf /tmp/downloaded_packages && \
 WORKDIR $HOME
 
 RUN mkdir pipeline/
-#RUN mkdir pipeline/ref/
+RUN mkdir pipeline/ref/
 RUN mkdir pipeline/fastq/
+
 
 COPY dicty_myco_merged_genomes.fna dicty_myco_merged_genomes.fna.fai pipeline/ref/.
 COPY Makefile pipeline/.
 COPY bin/ pipeline/bin/.
+COPY do_make.sh pipeline/.
+
+WORKDIR $HOME/pipeline/
 
 USER user
 
 
-CMD ["/bin/bash"]
-
+ENTRYPOINT ["./do_make.sh"]
+#CMD ["/bin/bash"]
 

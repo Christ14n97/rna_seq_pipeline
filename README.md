@@ -45,6 +45,8 @@ In this case we mount:
 
 ## Run pipeline
 
+**Update** this is done automatically inside container.
+
 ```bash
 files=($(ls fastq/ | grep -E "*.fastq.gz$" | sed 's/\.fastq.gz$//'))
 ```

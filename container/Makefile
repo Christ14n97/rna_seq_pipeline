@@ -1,7 +1,14 @@
 
+
+all: $(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam $(BASE_NAME).bam.bai \
+	$(BASE_NAME).bam.flagstat $(BASE_NAME).bam.idxstat quantif_$(BASE_NAME).$(QUANT_MODE).rds
+
+.PHONY: all
+
 STAR_FLAGS += --clip3pAdapterSeq AAAAAAAAAAAAAAAAAAA,CTGTCTCTTATACACATCT
 
-
+BASE_NAME := $(BASE_NAME)
+vpath %.fastq.gz fastq/
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Define paths to the softwares
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -13,10 +20,13 @@ SAMTOOLS := samtools
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # STAR mapping
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+
+GENOME_DIR := $(GENOME_DIR)
+
 # Paired-end version
 .PRECIOUS:%.DdMm.star/Aligned.sortedByCoord.out.bam
-%.DdMm.star/Aligned.sortedByCoord.out.bam:%.fastq.gz
-	mkdir -p '$(@D)' && \
+$(BASE_NAME).DdMm.star/Aligned.sortedByCoord.out.bam:$(BASE_NAME).fastq.gz
+	mkdir -p 'fastq/$(@D)' && \
         $(STAR) $(STAR_FLAGS) \
           --runThreadN 8 \
           --outSAMtype BAM SortedByCoordinate \
@@ -26,8 +36,8 @@ SAMTOOLS := samtools
           --outReadsUnmapped Fastx \
           --readFilesCommand gunzip -c \
           --quantMode GeneCounts \
-          --genomeDir './data/ref/GRCm39_vM27/star_index' \
-          --outFileNamePrefix '$(@D)/' \
+          --genomeDir $(GENOME_DIR) \
+          --outFileNamePrefix 'fastq/$(@D)/' \
           --readFilesIn $^
 
 
@@ -36,14 +46,20 @@ SAMTOOLS := samtools
 #-#-#-#-#-#-#-#-#
 # SAMTOOLS 
 #-#-#-#-#-#-#-#-#
-%.bam.bai:%.bam
-	$(SAMTOOLS) index $<
 
-%.bam.flagstat:%.bam
-	$(SAMTOOLS) flagstat $< > $@
+# storage
+DIR := $(dir $(BAM_FILE))
+# expansion, otherwise make is not getting the value
+OUTPATH := $(DIR)
 
-%.bam.idxstat:%.bam
-	$(SAMTOOLS) idxstat $< > $@
+$(BASE_NAME).bam.bai:$(BAM_FILE)
+	$(SAMTOOLS) index $< 
+
+$(BASE_NAME).bam.flagstat:$(BAM_FILE)
+	$(SAMTOOLS) flagstat "$(abspath $<)" > "$(abspath $(OUTPATH))/$@"
+
+$(BASE_NAME).bam.idxstat:$(BAM_FILE)
+	$(SAMTOOLS) idxstat "$(abspath $<)" > "$(abspath $(OUTPATH))/$@"
 
 
 
@@ -51,25 +67,25 @@ SAMTOOLS := samtools
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Compute genome coverage
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-%.fwd.wig:%.bam
-	./src/bin/bam_coverage --strand=forward --out '$@' $<
-%.rev.wig:%.bam
-	./src/bin/bam_coverage --strand=reverse --out '$@' $<
-%.wig:%.bam
-	./src/bin/bam_coverage --strand=both --out '$@' $<
+#%.fwd.wig:%.bam
+#	.././bin/bam_coverage --strand=forward --out '$@' $<
+#%.rev.wig:%.bam
+#	.././bin/bam_coverage --strand=reverse --out '$@' $<
+#%.wig:%.bam
+#	.././bin/bam_coverage --strand=both --out '$@' $<
 
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Quantify Reads into each gene
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-data/fastq/quantif_GRCm39.%.rds:
-	./local/bin/bam_quantify \
-	  --out '$@' \
-	  --mode '$*' \
-	  --gtf='data/ref/GRCm39_vM27/gencode.vM27.annotation.gtf' \
-	  data/fastq/*.GRCm39.star/Aligned.sortedByCoord.out.bam
-
+QUANT_MODE := $(QUANT_MODE)
+quantif_$(BASE_NAME).$(QUANT_MODE).rds:$(BAM_FILE)
+	  bin/./bam_quantify \
+	  --out '$(abspath $(OUTPATH))/$@' \
+	  --mode $(QUANT_MODE) \
+	  --gtf='ref/dicty_myco_merged_annotation.gff' \
+	  $(BAM_FILE)
 
 
 

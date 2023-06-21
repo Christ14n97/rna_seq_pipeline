@@ -85,8 +85,7 @@ quantif_$(BASE_NAME).$(QUANT_MODE).rds:$(BAM_FILE)
 	  --out '$(abspath $(OUTPATH))/$@' \
 	  --mode $(QUANT_MODE) \
 	  --gtf='reference_genomes/dicty_myco_merged_annotation.gff' \
-	  $(BAM_FILE) 
-	# *.GRCm39.star/Aligned.sortedByCoord.out.bam
+	  $(BAM_FILE)
 
 
 
