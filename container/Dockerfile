@@ -1,60 +1,40 @@
 # take this image to create a non-cuda environment
-#FROM bioconductor/bioconductor_docker:RELEASE_3_16
+FROM rocker/r-ver:4.3.1
 
-FROM rocker/r-ver
-
-RUN TZ=Europe/Madrid && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-
+# Install packages dependencies
 RUN apt-get update && apt-get install -y \
-    software-properties-common aptitude make libncurses-dev libbz2-dev liblzma-dev gcc zlib1g-dev wget man-db
+      bzip2 \
+      curl \
+      make \
+      gcc \
+      libncurses-dev \
+      libbz2-dev \
+      liblzma-dev \
+      zlib1g-dev \
+      libcurl4-openssl-dev \
+      rna-star \
+      pigz \
+    && rm -rf /var/cache/apt/* /var/lib/apt/lists/*;
 
-#creating user for autamate login into shell
-RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su &&\
-    sed 's/required/sufficient/g' -i /etc/pam.d/chsh &&\
-    useradd -ms /usr/bin/bash -p "psswd" user
+# Install SAMTOOLS
+RUN curl -kL 'https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2' | tar -C /tmp -jxf - \
+    && cd /tmp/samtools-*/ \
+    && ./configure \
+    && make -j6 \
+    && make install \
+    && rm -rf /tmp/samtools-*
 
-RUN yes | unminimize
-    
-ENV HOME=/home/user
+# Install R packages
+#COPY install.R /tmp
+#RUN R -q -f "/tmp/install.R" \
+#    && rm -rf /tmp/Rtmp*
 
-WORKDIR $HOME/Downloads
-RUN wget https://github.com/samtools/samtools/releases/download/1.17/samtools-1.17.tar.bz2
-RUN tar xvjf samtools-1.17.tar.bz2 && cd samtools-1.17/ && ./configure && make && make install
-ENV PATH="$PATH:~HOME/Downloads/samtools-1.17"
+VOLUME /data
+VOLUME /ref
+WORKDIR /data
+ADD pipeline/ /pipeline
 
-
-RUN apt-get update && aptitude -y install rna-star
-    
-RUN aptitude -y install nano libcurl4-openssl-dev
-
-COPY install.R /tmp
-RUN R -q -f "/tmp/install.R"
-
-# removing cache files
-RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/*;
-# removing temporary folders
-RUN rm -rf /tmp/downloaded_packages && \
-    rm -rf /tmp/RtmpIj1cu8/downloaded_packages && \
-    rm -rf /tmp/RtmpmxTsSH/downloaded_packages
-
-WORKDIR $HOME
-
-RUN mkdir pipeline/
-RUN mkdir pipeline/ref/
-RUN mkdir pipeline/fastq/
+ENTRYPOINT ["make","-f","/pipeline/Makefile"]
 
 
-COPY dicty_myco_merged_genomes.fna dicty_myco_merged_genomes.fna.fai pipeline/ref/.
-COPY Makefile pipeline/.
-COPY bin/ pipeline/bin/.
-COPY do_make.sh pipeline/.
-
-WORKDIR $HOME/pipeline/
-
-USER user
-
-
-ENTRYPOINT ["./do_make.sh"]
-#CMD ["/bin/bash"]
 

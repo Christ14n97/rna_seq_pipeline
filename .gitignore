@@ -3,11 +3,5 @@
 ._*
 _STARtmp/
 *.Rproj
-*.fastq.gz
-*.bam
-*.zip
-*fna.gz
-*.gff.bak
-*_star_index/
-*.gff.gz
 .Rproj.user
+.star_index
